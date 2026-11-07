@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>ماشین حساب</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Roboto,Arial,Tahoma,sans-serif;overflow:hidden}
+#calc,#chat{position:fixed;inset:0;display:none;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#calc.on,#chat.on{display:flex}
+/* ---------- calculator ---------- */
+#calc{direction:ltr;padding-left:12px;padding-right:12px}
+#disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding:12px 10px;min-height:0}
+#prev{color:#8e8e93;font-size:22px;min-height:28px;word-break:break-all;text-align:right}
+#cur{font-size:64px;font-weight:300;line-height:1.1;word-break:break-all;text-align:right;max-width:100%}
+#keys{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:8px 0 18px}
+#keys button{height:min(17vw,86px);border:0;border-radius:999px;font-size:30px;color:#fff;background:#333;font-family:inherit}
+#keys button:active{filter:brightness(1.5)}
+#keys .fn{background:#a5a5a5;color:#000}
+#keys .op{background:#ff9f0a}
+#keys .z{grid-column:span 2;text-align:left;padding-left:34px}
+/* ---------- messenger ---------- */
+#chat{direction:rtl;background:#0b141a;font-family:Tahoma,Arial,sans-serif}
+#top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#111b21;border-bottom:1px solid #222d34}
+#top b{flex:1;font-size:16px}
+#dot{width:10px;height:10px;border-radius:50%;background:#888}
+#dot.ok{background:#3ddc84}#dot.bad{background:#ff5c6c}
+#top button{background:#202c33;color:#e9edef;border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:13px}
+#msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.m{max-width:80%;padding:8px 11px;border-radius:12px;font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.m small{display:block;font-size:10.5px;color:#9aa8b0;margin-top:2px}
+.m.me{align-self:flex-start;background:#005c4b;border-bottom-right-radius:3px}
+.m.he{align-self:flex-end;background:#202c33;border-bottom-left-radius:3px}
+.m .n{font-size:11px;color:#53bdeb;display:block}
+#bar{display:flex;gap:8px;padding:8px 10px;background:#111b21}
+#txt{flex:1;resize:none;max-height:120px;border:0;border-radius:20px;padding:11px 14px;background:#202c33;color:#e9edef;font:inherit;font-size:15px;outline:none}
+#send{width:46px;height:46px;border:0;border-radius:50%;background:#00a884;color:#fff;font-size:20px}
+.q{background:#0004;border-right:3px solid #53bdeb;border-radius:6px;padding:4px 8px;margin-bottom:5px;font-size:13px;cursor:pointer}
+.q b{display:block;font-size:12px;color:#53bdeb}
+.q span{display:block;color:#c0cbd1;max-height:3.4em;overflow:hidden}
+.m.flash{animation:fl 1.2s}
+@keyframes fl{0%,70%{box-shadow:0 0 0 3px #53bdeb}100%{box-shadow:none}}
+.m.emo{background:none;font-size:38px;line-height:1.3;padding:2px 6px}
+.m.emo small{font-size:10.5px}
+#rbar{display:none;align-items:center;gap:8px;padding:6px 12px;background:#111b21;border-top:1px solid #222d34}
+#rbar.on{display:flex}
+#rq{flex:1;border-right:3px solid #53bdeb;padding:2px 8px;min-width:0}
+#rq b{display:block;font-size:12px;color:#53bdeb}
+#rq span{display:block;font-size:13px;color:#aebac1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rx{background:none;border:0;color:#aebac1;font-size:20px}
+.ib{width:42px;height:42px;border:0;border-radius:50%;background:#202c33;color:#e9edef;font-size:19px;flex:0 0 42px;align-self:flex-end}
+#mic{touch-action:none;user-select:none;-webkit-user-select:none}
+#mic.on{background:#ff5c6c;transform:scale(1.25)}
+#recl{display:none;flex:1;align-items:center;gap:10px;padding:0 14px;color:#ff9aa6;font-size:14px;background:#202c33;border-radius:20px;min-height:46px}
+#recl.on{display:flex}
+.mi{display:block;width:240px;max-width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:3px}
+.m audio{display:block;width:230px;max-width:100%;height:38px}
+.prog{display:block;font-size:11.5px;color:#c0cbd1;margin:2px 0}
+#view{position:absolute;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:5}
+#view.on{display:flex}
+#view img{max-width:100%;max-height:100%}
+#note{padding:6px 12px;font-size:12px;color:#ffb4bd;background:#2b1a1d;display:none}
+#name{position:absolute;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:20px}
+#name.on{display:flex}
+#name div{background:#111b21;border-radius:16px;padding:18px;width:min(340px,100%);text-align:center}
+#name input{width:100%;margin:12px 0;padding:12px;border-radius:12px;border:1px solid #2a3942;background:#0b141a;color:#fff;font:inherit;text-align:center}
+#name button{width:100%;padding:12px;border:0;border-radius:12px;background:#00a884;color:#fff;font:inherit}
+</style>
+</head>
+<body>
+
+<div id="calc" class="on">
+  <div id="disp"><div id="prev"></div><div id="cur">0</div></div>
+  <div id="keys">
+    <button class="fn" data-k="C">C</button><button class="fn" data-k="B">⌫</button><button class="fn" data-k="%">%</button><button class="op" data-k="÷">÷</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="op" data-k="×">×</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="op" data-k="−">−</button>
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="op" data-k="+">+</button>
+    <button class="z" data-k="0">0</button><button data-k=".">.</button><button class="op" data-k="=">=</button>
+  </div>
+</div>
+
+<div id="chat">
+  <div id="top"><span id="dot"></span><b id="title">گفتگو</b><button id="clear">پاک‌سازی</button><button id="lock">قفل</button></div>
+  <div id="note"></div>
+  <div id="msgs"></div>
+  <div id="rbar"><div id="rq"><b id="rn"></b><span id="rt"></span></div><button id="rx">✕</button></div>
+  <div id="bar"><button id="send">➤</button><button id="mic" class="ib" title="نگه دار و صحبت کن">🎤</button><div id="recl"><span>●</span><span id="rect">0:00</span><span id="rhint">برای لغو انگشت را بالا بکش</span></div><textarea id="txt" rows="1" placeholder="پیام..."></textarea><button id="img" class="ib">📷</button><input id="pic" type="file" accept="image/*" hidden></div>
+  <div id="view"><img id="vimg" alt=""></div>
+  <div id="name"><div><b>نام نمایشی شما</b><input id="nm" maxlength="20" placeholder="مثلاً علی"><button id="nmok">ذخیره</button></div></div>
+</div>
+<script>
+//CORE-START
+/* ====== تنظیمات ====== */
+const PIN='1345';                         // رمز ورود (برای هر دو طرف)
+const ROOM='-XpLQChG35p7QuBkcXksIGyCFik1a37V'; // کلید مشترک گفتگو؛ قبل از ساخت برنامه عوضش کن و به هر دو نفر همان را بده
+let SERVER='https://ntfy.sh';             // سرور رله پیام‌ها
+/* ===================== */
+const enc=new TextEncoder(),dec=new TextDecoder();
+let KEY=null,TOPIC='';
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+const b64=u=>{let s='';u.forEach(c=>s+=String.fromCharCode(c));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function initKeys(){
+  const base=await crypto.subtle.importKey('raw',enc.encode(ROOM),'PBKDF2',false,['deriveKey']);
+  KEY=await crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode('calc-chat-v1'),iterations:100000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  TOPIC='c'+hex(await crypto.subtle.digest('SHA-256',enc.encode('topic:'+ROOM))).slice(0,40);
+}
+const hexToBytes=h=>Uint8Array.from(h.match(/../g),x=>parseInt(x,16));
+async function encryptBytes(u8){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},KEY,u8));
+  const all=new Uint8Array(12+ct.length);all.set(iv);all.set(ct,12);return b64(all);
+}
+async function decryptBytes(s){
+  const all=unb64(s);
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:all.slice(0,12)},KEY,all.slice(12)));
+}
+const encrypt=obj=>encryptBytes(enc.encode(JSON.stringify(obj)));
+async function decrypt(s){return JSON.parse(dec.decode(await decryptBytes(s)))}
+async function publishBytes(u8){
+  const r=await fetch(SERVER+'/'+TOPIC,{method:'POST',body:await encryptBytes(u8)});
+  if(!r.ok)throw new Error('http '+r.status);
+  return r.json();
+}
+const publish=obj=>publishBytes(enc.encode(JSON.stringify(obj)));
+const CH=2600; // بایت داده در هر تکه؛ سقف پیام سرور ۴۰۹۶ بایت است
+function makeChunks(gid,bytes){
+  const N=Math.ceil(bytes.length/CH),g=hexToBytes(gid),out=[];
+  for(let k=0;k<N;k++){
+    const part=bytes.subarray(k*CH,(k+1)*CH),b=new Uint8Array(9+part.length);
+    b[0]=1;b.set(g,1);b[7]=k;b[8]=N;b.set(part,9);out.push(b);
+  }
+  return out;
+}
+async function subscribe(onMsg,signal,since){
+  const r=await fetch(SERVER+'/'+TOPIC+'/json?since='+encodeURIComponent(since||'12h'),{signal});
+  if(!r.ok||!r.body)throw new Error('http '+r.status);
+  const rd=r.body.getReader(),td=new TextDecoder();let buf='';
+  for(;;){
+    const {done,value}=await rd.read();if(done)return;
+    buf+=td.decode(value,{stream:true});
+    let k;while((k=buf.indexOf('\n'))>=0){
+      const line=buf.slice(0,k).trim();buf=buf.slice(k+1);
+      if(!line)continue;
+      let ev;try{ev=JSON.parse(line)}catch(e){continue}
+      if(ev.event==='open'){onMsg(null,'open');continue}
+      if(ev.event!=='message')continue;
+      try{
+        const pt=await decryptBytes(ev.message);
+        if(pt[0]===123){onMsg({...JSON.parse(dec.decode(pt)),id:ev.id,st:ev.time},'message')}
+        else if(pt[0]===1){onMsg({gid:hex(pt.slice(1,7)),idx:pt[7],N:pt[8],data:pt.slice(9),id:ev.id,st:ev.time},'chunk')}
+      }catch(e){/* پیام نامعتبر یا کلید متفاوت */}
+    }
+  }
+}
+function calcEval(expr){
+  let e=expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/[+\-*/.]+$/,'');
+  if(!e)return '0';
+  e=e.replace(/(\d+\.?\d*)%/g,'($1/100)');
+  if(!/^[0-9+\-*/.() ]+$/.test(e))return 'خطا';
+  try{const r=Function('"use strict";return('+e+')')();
+    if(typeof r!=='number'||!isFinite(r))return 'خطا';
+    return String(parseFloat(r.toPrecision(12)));}catch(x){return 'خطا'}
+}
+//CORE-END
+
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- ماشین حساب ---------- */
+let expr='',done=false;
+const isOp=c=>'+−×÷'.includes(c);
+function showCalc(){$('cur').textContent=expr||'0';$('cur').style.fontSize=(expr.length>14?34:expr.length>9?44:64)+'px'}
+function press(k){
+  if(k==='C'){expr='';done=false;$('prev').textContent='';showCalc();return}
+  if(k==='B'){if(done){expr='';done=false}else expr=expr.slice(0,-1);showCalc();return}
+  if(k==='='){
+    if(expr===PIN){expr='';$('prev').textContent='';showCalc();unlock();return}
+    if(!expr)return;
+    const r=calcEval(expr);$('prev').textContent=expr+' =';expr=r==='خطا'?'':r;
+    if(r==='خطا')$('cur').textContent='خطا';else showCalc();
+    done=r!=='خطا';return;
+  }
+  if(done){ if(isOp(k)||k==='%'){done=false}else{expr='';done=false;$('prev').textContent=''} }
+  if(isOp(k)){ if(!expr){if(k==='−')expr='−';showCalc();return}
+    if(isOp(expr.slice(-1)))expr=expr.slice(0,-1);
+    expr+=k;
+  }else if(k==='%'){ if(expr&&/\d$/.test(expr))expr+='%' }
+  else if(k==='.'){ const last=expr.split(/[+−×÷]/).pop(); if(last.includes('.'))return; expr+=last===''?'0.':'.' }
+  else expr+=k;
+  showCalc();
+}
+document.querySelectorAll('#keys button').forEach(b=>b.addEventListener('click',()=>press(b.dataset.k)));
+/* ---------- پیام‌رسان ---------- */
+let ctl=null,msgs=store.get('cc_msgs',[]),seen=new Set(msgs.map(m=>m.id)),lastId=store.get('cc_last',''),
+    myId=store.get('cc_id','')||(()=>{const v=Math.random().toString(36).slice(2)+Date.now().toString(36);store.set('cc_id',v);return v})(),
+    myName=store.get('cc_name','');
+function note(t){const n=$('note');n.textContent=t||'';n.style.display=t?'block':'none'}
+function dot(c){$('dot').className=c||''}
+const EMO=/^[\p{Extended_Pictographic}\s\u200d\ufe0f]+$/u;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+let replyTo=null;
+const media=new Map(),parts=new Map(),sending=new Map(),tried=new Set(),loading=new Set();
+function lbl(m){return m.k==='img'?'📷 عکس':m.k==='aud'?'🎤 پیام صوتی':m.t}
+function snip(t){return t.length>90?t.slice(0,90)+'…':t}
+function setReply(m){
+  replyTo={id:m.id,n:m.i===myId?(myName||'من'):(m.n||''),t:snip(lbl(m))};
+  $('rn').textContent=replyTo.n||'پیام';$('rt').textContent=replyTo.t;$('rbar').classList.add('on');$('txt').focus();
+}
+function clearReply(){replyTo=null;$('rbar').classList.remove('on')}
+function jump(id){
+  const kids=$('msgs').children;
+  for(let i=0;i<kids.length;i++){if(kids[i].dataset.id===id){const el=kids[i];el.scrollIntoView({block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');return}}
+}
+/* ---- ذخیره فایل‌ها (IndexedDB) ---- */
+let _db=null;
+function idb(){return new Promise((res,rej)=>{if(_db)return res(_db);try{const rq=indexedDB.open('cc_media',1);rq.onupgradeneeded=()=>rq.result.createObjectStore('m');rq.onsuccess=()=>{_db=rq.result;res(_db)};rq.onerror=()=>rej(rq.error)}catch(e){rej(e)}})}
+async function idbPut(k,mime,bytes){try{const d=await idb();await new Promise((res,rej)=>{const tx=d.transaction('m','readwrite');tx.objectStore('m').put({mime,buf:bytes.slice().buffer},k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}catch(e){}}
+async function idbGet(k){try{const d=await idb();return await new Promise((res,rej)=>{const rq=d.transaction('m').objectStore('m').get(k);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error)})}catch(e){return null}}
+async function idbClear(){try{const d=await idb();d.transaction('m','readwrite').objectStore('m').clear()}catch(e){}}
+function loadMedia(g){
+  if(loading.has(g))return;loading.add(g);
+  idbGet(g).then(r=>{
+    if(r)media.set(g,{url:URL.createObjectURL(new Blob([r.buf],{type:r.mime})),mime:r.mime});
+    tried.add(g);refresh(g);
+  });
+}
+function refresh(g){
+  const m=msgs.find(x=>x.g===g);if(!m)return;
+  const kids=$('msgs').children;
+  for(let i=0;i<kids.length;i++){if(kids[i].dataset.g===g){$('msgs').replaceChild(bubble(m),kids[i]);return}}
+}
+function mediaNode(m){
+  const w=document.createElement('div'),md=media.get(m.g);
+  if(md){
+    if(m.k==='img'){
+      const im=document.createElement('img');im.className='mi';im.src=md.url;
+      im.addEventListener('click',e=>{e.stopPropagation();$('vimg').src=md.url;$('view').classList.add('on')});w.append(im);
+    }else{
+      const a=document.createElement('audio');a.controls=true;a.preload='metadata';a.src=md.url;
+      a.addEventListener('click',e=>e.stopPropagation());w.append(a);
+      const du=document.createElement('span');du.className='prog';du.textContent='🎤 '+fmt(m.dur||0);w.append(du);
+    }
+    const sd=sending.get(m.g);
+    if(sd){const p=document.createElement('span');p.className='prog';p.textContent=sd.fail?'ارسال ناقص ماند':'در حال ارسال '+sd.done+'/'+sd.N;w.append(p)}
+    return w;
+  }
+  const pr=parts.get(m.g),p=document.createElement('span');p.className='prog';
+  const ic=m.k==='img'?'📷 ':'🎤 ';
+  if(pr)p.textContent=ic+'در حال دریافت '+pr.got+'/'+pr.N;
+  else if(tried.has(m.g))p.textContent=ic+((Date.now()/1000-(m.st||m.ts/1000))<90?'در انتظار دریافت...':'فایل کامل دریافت نشد');
+  else{p.textContent=ic+'در حال بارگذاری...';loadMedia(m.g)}
+  w.append(p);return w;
+}
+function bubble(m){
+  const d=document.createElement('div');d.className='m '+(m.i===myId?'me':'he');d.dataset.id=m.id;
+  if(m.g)d.dataset.g=m.g;
+  if(!m.k&&m.t.length<=12&&EMO.test(m.t)&&[...m.t].length<=6)d.classList.add('emo');
+  if(m.i!==myId&&m.n){const n=document.createElement('span');n.className='n';n.textContent=m.n;d.append(n)}
+  if(m.r){
+    const q=document.createElement('div');q.className='q';
+    const qb=document.createElement('b');qb.textContent=m.r.n||'پیام';
+    const qs=document.createElement('span');qs.textContent=m.r.t;
+    q.append(qb,qs);q.addEventListener('click',e=>{e.stopPropagation();jump(m.r.id)});d.append(q);
+  }
+  if(m.k)d.append(mediaNode(m));else d.append(document.createTextNode(m.t));
+  const s=document.createElement('small');
+  s.textContent=new Date(m.st?m.st*1000:m.ts).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'})+(m.i===myId?' ✓':'');d.append(s);
+  d.addEventListener('click',()=>setReply(m));
+  return d;
+}
+function renderAll(){const box=$('msgs');box.textContent='';msgs.forEach(m=>box.append(bubble(m)));box.scrollTop=box.scrollHeight}
+function addMsg(m){
+  if(seen.has(m.id))return;seen.add(m.id);msgs.push(m);msgs.sort((a,b)=>(a.st||a.ts/1000)-(b.st||b.ts/1000));
+  if(msgs.length>500){msgs=msgs.slice(-500)}
+  store.set('cc_msgs',msgs);
+  renderAll();
+  if(m.k)tryAssemble(m.g);
+}
+function tryAssemble(g){
+  const p=parts.get(g),m=msgs.find(x=>x.g===g);
+  if(!p||!m||p.got!==p.N||media.has(g))return;
+  let len=0;p.arr.forEach(a=>len+=a.length);
+  const out=new Uint8Array(len);let o=0;p.arr.forEach(a=>{out.set(a,o);o+=a.length});
+  idbPut(g,m.mime,out);
+  media.set(g,{url:URL.createObjectURL(new Blob([out],{type:m.mime})),mime:m.mime});
+  parts.delete(g);refresh(g);
+}
+function onChunk(c){
+  if(media.has(c.gid))return;
+  let p=parts.get(c.gid);if(!p){p={N:c.N,arr:new Array(c.N),got:0};parts.set(c.gid,p)}
+  if(!p.arr[c.idx]){p.arr[c.idx]=c.data;p.got++}
+  if(p.got===p.N)tryAssemble(c.gid);else refresh(c.gid);
+}
+async function sendMedia(kind,bytes,mime,dur){
+  if(!KEY)return;
+  const chunks=makeChunks(hex(crypto.getRandomValues(new Uint8Array(6))),bytes);
+  if(chunks.length>250){note('فایل خیلی بزرگ است');return}
+  const gid=hex(chunks[0].slice(1,7));
+  const m={i:myId,n:myName,t:'',k:kind,g:gid,N:chunks.length,mime,dur:dur||0,ts:Date.now()};
+  if(replyTo)m.r=replyTo;
+  clearReply();
+  await idbPut(gid,mime,bytes);
+  media.set(gid,{url:URL.createObjectURL(new Blob([bytes],{type:mime})),mime});
+  const sd={done:0,N:chunks.length,fail:false};sending.set(gid,sd);
+  let r;
+  try{r=await publish(m)}catch(e){sending.delete(gid);note('ارسال نشد. اینترنت را بررسی کن.');setTimeout(()=>note(''),3500);return}
+  addMsg({...m,id:r.id,st:r.time});
+  for(let k=0;k<chunks.length;k++){
+    let ok=false;
+    for(let a=0;a<6&&!ok;a++){try{await publishBytes(chunks[k]);ok=true}catch(e){await sleep(a<2?1500:5000)}}
+    if(!ok){sd.fail=true;refresh(gid);note('ارسال فایل ناقص ماند');return}
+    sd.done=k+1;refresh(gid);
+  }
+  sending.delete(gid);refresh(gid);
+}
+async function pickImage(file){
+  try{
+    const url=URL.createObjectURL(file);
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    let best=null;
+    for(const dim of [560,480,400,320]){
+      const sc=Math.min(1,dim/Math.max(img.width,img.height)),c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      for(const q of [.55,.45,.35]){
+        best=await new Promise(r=>c.toBlob(r,'image/jpeg',q));
+        if(best&&best.size<=45000)break;
+      }
+      if(best&&best.size<=45000)break;
+    }
+    URL.revokeObjectURL(url);
+    const bytes=new Uint8Array(await best.arrayBuffer());
+    if(bytes.length>70000){note('عکس خیلی بزرگ است');return}
+    sendMedia('img',bytes,'image/jpeg',0);
+  }catch(e){note('عکس خوانده نشد');setTimeout(()=>note(''),3000)}
+}/* ---- ضبط صدا: نگه دار و صحبت کن، رها کن تا ارسال شود ---- */
+let rec=null,holding=false,recTimer=null,cancelSel=false,noLockUntil=0;
+function stopRec(cancel){holding=false;if(rec){rec.cancel=!!cancel;try{rec.mr.stop()}catch(e){}}}
+async function startRec(){
+  holding=true;cancelSel=false;noLockUntil=Date.now()+60000;
+  if(rec||!KEY)return;
+  if(!navigator.mediaDevices||!window.MediaRecorder){holding=false;note('ضبط صدا اینجا ممکن نیست. برنامه را باید به‌صورت APK نصب‌شده باز کنی، نه از داخل مرورگر.');setTimeout(()=>note(''),6000);return}
+  let st;
+  try{st=await navigator.mediaDevices.getUserMedia({audio:true})}
+  catch(e){holding=false;note(e&&e.name==='NotFoundError'?'میکروفونی پیدا نشد':'میکروفون اجازه ندارد. تنظیمات گوشی ← برنامه‌ها ← ماشین حساب ← مجوزها ← میکروفون را روشن کن. اگر این گزینه را نمی‌بینی، برنامه را با نسخه‌ی جدید استادیو دوباره بساز.');setTimeout(()=>note(''),9000);return}
+  if(!holding){st.getTracks().forEach(t=>t.stop());return}
+  const types=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/webm','audio/mp4'];
+  const mt=types.find(t=>MediaRecorder.isTypeSupported(t))||'';
+  let mr;try{mr=new MediaRecorder(st,mt?{mimeType:mt,audioBitsPerSecond:14000}:{audioBitsPerSecond:14000})}catch(e){mr=new MediaRecorder(st)}
+  const r=rec={mr,chunks:[],cancel:false,t0:Date.now(),mime:(mr.mimeType||mt||'audio/webm').split(';')[0]};
+  mr.ondataavailable=ev=>{if(ev.data&&ev.data.size)r.chunks.push(ev.data)};
+  mr.onstop=async()=>{
+    st.getTracks().forEach(t=>t.stop());clearInterval(recTimer);
+    $('recl').classList.remove('on');$('txt').style.display='';$('mic').classList.remove('on');rec=null;
+    if(r.cancel||Date.now()-r.t0<700)return;
+    const bytes=new Uint8Array(await new Blob(r.chunks,{type:r.mime}).arrayBuffer());
+    if(bytes.length>70000){note('پیام صوتی خیلی طولانی است');setTimeout(()=>note(''),3000);return}
+    sendMedia('aud',bytes,r.mime,Math.round((Date.now()-r.t0)/1000));
+  };
+  mr.start(300);
+  $('txt').style.display='none';$('recl').classList.add('on');$('mic').classList.add('on');$('rhint').textContent='برای لغو انگشت را بالا بکش';
+  recTimer=setInterval(()=>{const sec=Math.floor((Date.now()-r.t0)/1000);$('rect').textContent=fmt(sec);if(sec>=30)stopRec(false)},250);
+}
+async function listen(){
+  ctl=new AbortController();const my=ctl;
+  while(!my.signal.aborted){
+    try{
+      await subscribe((m,t)=>{
+        if(t==='open'){dot('ok');note('');return}
+        lastId=m.id;store.set('cc_last',lastId);
+        if(t==='chunk')onChunk(m);else addMsg(m);
+      },my.signal,lastId||'12h');
+    }catch(e){ if(my.signal.aborted)return }
+    dot('bad');
+    await new Promise(r=>setTimeout(r,3000));
+  }
+}
+async function unlock(){
+  if(!window.crypto||!crypto.subtle){alert('این دستگاه رمزنگاری را پشتیبانی نمی‌کند');return}
+  $('calc').classList.remove('on');$('chat').classList.add('on');
+  try{history.pushState({m:1},'')}catch(e){}
+  renderAll();
+  if(!myName){$('name').classList.add('on')}
+  try{await initKeys()}catch(e){note('خطا در راه‌اندازی رمزنگاری');return}
+  listen();
+}
+function lock(){
+  stopRec(true);$('view').classList.remove('on');
+  if(ctl){ctl.abort();ctl=null}
+  $('msgs').textContent='';$('txt').value='';clearReply();note('');dot('');
+  $('chat').classList.remove('on');$('calc').classList.add('on');
+  expr='';done=false;$('prev').textContent='';showCalc();
+}
+async function sendMsg(){
+  const t=$('txt').value.trim();if(!t)return;if(!KEY)return;
+  const m={i:myId,n:myName,t:t.slice(0,800),ts:Date.now()};
+  if(replyTo)m.r=replyTo;
+  const sentReply=replyTo;clearReply();
+  $('txt').value='';
+  try{const r=await publish(m);addMsg({...m,id:r.id,st:r.time})}
+  catch(e){$('txt').value=t;if(sentReply){replyTo=sentReply;$('rbar').classList.add('on')}note('ارسال نشد. اینترنت را بررسی کن.');setTimeout(()=>note(''),3500)}
+}
+$('send').addEventListener('click',sendMsg);
+$('rx').addEventListener('click',clearReply);
+$('img').addEventListener('click',()=>{noLockUntil=Date.now()+120000;$('pic').click()});
+$('pic').addEventListener('change',()=>{const f=$('pic').files&&$('pic').files[0];$('pic').value='';if(f)pickImage(f)});
+$('view').addEventListener('click',()=>$('view').classList.remove('on'));
+const mic=$('mic');let sy=0;
+mic.addEventListener('contextmenu',e=>e.preventDefault());
+mic.addEventListener('pointerdown',e=>{e.preventDefault();sy=e.clientY;try{mic.setPointerCapture(e.pointerId)}catch(x){}startRec()});
+mic.addEventListener('pointermove',e=>{if(!rec)return;const c=sy-e.clientY>90;if(c!==cancelSel){cancelSel=c;$('rhint').textContent=c?'رها کن تا لغو شود':'برای لغو انگشت را بالا بکش'}});
+mic.addEventListener('pointerup',()=>stopRec(cancelSel));
+mic.addEventListener('pointercancel',()=>stopRec(true));
+$('txt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});
+$('lock').addEventListener('click',()=>{try{history.back()}catch(e){lock()}});
+$('clear').addEventListener('click',()=>{if(confirm('پیام‌های ذخیره‌شده روی همین گوشی پاک شوند؟')){msgs=[];seen=new Set();store.set('cc_msgs',[]);media.clear();parts.clear();tried.clear();loading.clear();idbClear();renderAll()}});
+$('nmok').addEventListener('click',()=>{const v=$('nm').value.trim();if(!v)return;myName=v;store.set('cc_name',v);$('name').classList.remove('on')});
+window.addEventListener('popstate',()=>{if($('chat').classList.contains('on'))lock()});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){noLockUntil=0;return}
+  if($('chat').classList.contains('on')&&Date.now()>noLockUntil)lock();
+});
+showCalc();
+</script>
+</body>
+</html>
